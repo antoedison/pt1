@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import os
 import shutil
+import time
 
 # Import your RAG functions
 from rag_app import (
@@ -93,25 +94,47 @@ async def query_document(
     except Exception as e:
         return respond(request, {"error": str(e)})
     
-# Agent Endpoint
+# ---------------- Agent Endpoint ----------------
 @app.post("/agent")
 async def agent_endpoint(
     request: Request,
     index_name: str = Form(...),
-    question: str = Form(...)
+    question: str = Form(...),
 ):
     try:
-        db = load_faiss_index(index_path=index_name)
-        retriever = db.as_retriever()
+        # Step 1: Classify the question
+        classification = classifier_agent(question)
 
-        # Call the agent
-        agent = retriever_agent_chain(retriever)
-        response = agent(question)
+        if classification == "chat":
+            # Step 2a: Chat Agent
+            # Delay before calling chat agent
+            time.sleep(1.1)
+            response = chat_agent(question)
+            return respond(
+                request,
+                {
+                    "query": question,
+                    "agent_type": "chat",
+                    "agent_response": response,
+                },
+            )
 
-        return respond(request, {
-            "query": question,
-            "agent_response": response,
-            "index_used": index_name
-        })
+        else:
+            # Step 2b: Knowledge Agent (Retriever Agent)
+            db = load_faiss_index(index_path=index_name)
+            retriever = db.as_retriever()
+            agent = retriever_agent_chain(retriever)
+            response = agent(question)
+
+            return respond(
+                request,
+                {
+                    "query": question,
+                    "agent_type": "knowledge",
+                    "agent_response": response,
+                    "index_used": index_name,
+                },
+            )
+
     except Exception as e:
         return respond(request, {"error": str(e)})
