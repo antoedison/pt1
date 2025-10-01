@@ -1,0 +1,7 @@
+langchain
+langchain-community
+faiss-cpu
+ollama
+pypdf
+unstructured[all-docs]
+numpy

@@ -20,7 +20,7 @@ faiss_index/
 uploads/
 *.pdf
 *.docx
-*.txt
+
 *.json
 
 # --- OS / Editor files ---
