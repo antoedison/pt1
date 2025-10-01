@@ -1,0 +1,36 @@
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+*.sqlite3
+
+# --- Virtual environment ---
+venv/
+.env/
+.venv/
+
+# --- FAISS indexes & vector stores ---
+faiss_index/
+*.faiss
+*.npy
+
+# --- Uploaded files ---
+uploads/
+*.pdf
+*.docx
+*.txt
+*.json
+
+# --- OS / Editor files ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# --- Logs ---
+*.log
+
+# --- Jupyter ---
+.ipynb_checkpoints/
