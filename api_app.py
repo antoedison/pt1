@@ -1,5 +1,7 @@
-from fastapi import FastAPI, UploadFile, Form
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, UploadFile, Form, Request
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 import os
 import shutil
 
@@ -12,64 +14,104 @@ from rag_app import (
     get_qa_chain,
 )
 
+from agents import (
+    classifier_agent,
+    chat_agent,
+    retriever_agent_chain
+)
+
+
 app = FastAPI(title="RAG API with LangChain + Ollama")
+
+# ---------------- Templating setup ----------------
+templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
-# ----------- Upload Document Endpoint -----------
+# ---------------- Utility function ----------------
+def respond(request: Request, data: dict, template_name: str = "index.html"):
+    """
+    Returns HTML if the client accepts it, otherwise JSON.
+    """
+    if "text/html" in request.headers.get("accept", ""):
+        return templates.TemplateResponse(template_name, {"request": request, **data})
+    return JSONResponse(data)
+
+
+# ---------------- Home Page ----------------
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    return respond(request, {})
+
+
+# ---------------- Upload Document Endpoint ----------------
 @app.post("/upload")
-async def upload_document(file: UploadFile):
-    """
-    Upload a document, process it, and create FAISS index.
-    The index will be saved as 'faiss_index_<filename>'.
-    """
+async def upload_document(request: Request, file: UploadFile):
     try:
-        # Save uploaded file
         file_path = os.path.join(UPLOAD_DIR, file.filename)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # Process document
         docs = load_document(file_path)
         chunks = chunk_document(docs)
 
-        # Create FAISS index with filename-based ID
         index_path = f"faiss_index_{os.path.splitext(file.filename)[0]}"
-        db = create_faiss_index(chunks, index_path=index_path)
+        create_faiss_index(chunks, index_path=index_path)
 
-        return JSONResponse({
-            "message": f"Index created successfully",
+        return respond(request, {
+            "message": "Index created successfully",
             "index_path": index_path
         })
 
     except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return respond(request, {"error": str(e)})
 
 
-# ----------- Query Endpoint -----------
+# ---------------- Query Document Endpoint ----------------
 @app.post("/query")
-async def query_document(index_name: str = Form(...), question: str = Form(...)):
-    """
-    Ask a question against a given FAISS index.
-    """
+async def query_document(
+    request: Request,
+    index_name: str = Form(...),
+    question: str = Form(...)
+):
     try:
-        # Load FAISS index
         db = load_faiss_index(index_path=index_name)
         retriever = db.as_retriever()
-
-        # Create QA chain
         qa_chain = get_qa_chain(retriever=retriever)
 
-        # Run query
         answer = qa_chain.run(question)
 
-        return JSONResponse({
+        return respond(request, {
             "query": question,
             "answer": answer,
             "index_used": index_name
         })
 
     except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return respond(request, {"error": str(e)})
+    
+# Agent Endpoint
+@app.post("/agent")
+async def agent_endpoint(
+    request: Request,
+    index_name: str = Form(...),
+    question: str = Form(...)
+):
+    try:
+        db = load_faiss_index(index_path=index_name)
+        retriever = db.as_retriever()
+
+        # Call the agent
+        agent = retriever_agent_chain(retriever)
+        response = agent(question)
+
+        return respond(request, {
+            "query": question,
+            "agent_response": response,
+            "index_used": index_name
+        })
+    except Exception as e:
+        return respond(request, {"error": str(e)})
