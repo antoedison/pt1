@@ -2,7 +2,7 @@
 import os
 import requests
 from ollama import generate
-from prompts import retriever_agent_prompt
+from prompts import agent_prompt
 
 
 MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"
@@ -83,7 +83,7 @@ def retriever_agent_chain(retriever):
         context = "\n".join([d.page_content for d in docs])
 
         # Step 2: Format prompt
-        formatted_prompt = retriever_agent_prompt.format(context=context, question=question)
+        formatted_prompt = agent_prompt.format(context=context, question=question)
 
         # Step 3: Call Ollama LLM
         response = generate(model="mistral:latest", prompt=formatted_prompt)

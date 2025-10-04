@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Helpdesk Assistant</title>
+  <style>
+    * { box-sizing: border-box; font-family: "Poppins", sans-serif; }
+
+    body {
+      margin: 0;
+      background-color: #f8e6e9; /* very mild pale maroon */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .chat-container {
+      background: #fdfaf8; /* mild white */
+      border: 2px solid #8B2434;
+      border-radius: 12px;
+      width: 420px;
+      height: 600px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+    }
+
+    header {
+      background-color: #8B2434;
+      color: white;
+      text-align: center;
+      padding: 15px;
+      border-radius: 12px 12px 0 0;
+      font-size: 1.3rem;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    #chat-box {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #fdfaf8; /* match chat container mild white */
+    }
+
+    .message {
+      padding: 10px 14px;
+      border-radius: 10px;
+      max-width: 75%;
+      line-height: 1.4;
+      font-size: 14px;
+      word-wrap: break-word;
+    }
+
+    .user {
+      background: #99f2c8;
+      align-self: flex-end;
+      border-bottom-right-radius: 2px;
+    }
+
+    .bot {
+      background: #f1f1f1;
+      align-self: flex-start;
+      border-bottom-left-radius: 2px;
+    }
+
+    footer {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #ddd;
+      background: #fdfaf8; /* mild white */
+      border-radius: 0 0 12px 12px;
+    }
+
+    #user-input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      outline: none;
+      font-size: 14px;
+    }
+
+    #send-btn {
+      background: #8B2434;
+      color: white;
+      border: none;
+      padding: 0 20px;
+      margin-left: 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    #send-btn:hover {
+      background-color: #A93C4C;
+    }
+
+    small {
+      display: block;
+      margin-top: 5px;
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <header>Student Helpdesk Assistant</header>
+    <main id="chat-box"></main>
+    <footer>
+      <input type="text" id="user-input" placeholder="Type your question..." />
+      <button id="send-btn">Send</button>
+    </footer>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById("chat-box");
+    const userInput = document.getElementById("user-input");
+    const sendBtn = document.getElementById("send-btn");
+
+    function markdownToHtml(md) {
+      md = md.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
+      md = md.replace(/\n/g, "<br>");
+      return md;
+    }
+
+    function addMessage(content, sender) {
+      const msg = document.createElement("div");
+      msg.classList.add("message", sender);
+      if (sender === "bot") msg.innerHTML = markdownToHtml(content);
+      else msg.textContent = content;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+
+      addMessage(text, "user");
+      userInput.value = "";
+
+      const thinkingMsg = document.createElement("div");
+      thinkingMsg.classList.add("message", "bot");
+      thinkingMsg.textContent = "🤖 Thinking...";
+      chatBox.appendChild(thinkingMsg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      try {
+        const formData = new FormData();
+        formData.append("index_name", "faiss_index");
+        formData.append("question", text);
+
+        const response = await fetch("/agent", { method: "POST", body: formData });
+        const data = await response.json();
+
+        chatBox.removeChild(thinkingMsg);
+
+        if (data.agent_response) {
+          let botMsg = `(${data.agent_type.toUpperCase()}) ${data.agent_response}`;
+          if (data.index_used) botMsg += `<br><small>Index: ${data.index_used}</small>`;
+          addMessage(botMsg, "bot");
+        } else if (data.error) {
+          addMessage(`⚠️ Error: ${data.error}`, "bot");
+        } else {
+          addMessage(`⚠️ No valid response: ${JSON.stringify(data)}`, "bot");
+        }
+
+      } catch (err) {
+        chatBox.removeChild(thinkingMsg);
+        addMessage("⚠️ Error connecting to backend.", "bot");
+        console.error(err);
+      }
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+    userInput.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
+  </script>
+</body>
+</html>

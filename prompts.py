@@ -1,24 +1,20 @@
 from langchain.prompts import ChatPromptTemplate
 # Define the agent's reasoning behavior
-retriever_agent_prompt = ChatPromptTemplate.from_template("""
-You are an intelligent assistant helping identify issues and missing key points.
-
-Steps:
-1. Analyze the user's input and retrieved context.
-2. Identify the most relevant issue.
-3. List what key details are missing to fully resolve the issue.
-4. If details are missing, ask a clear follow-up question to obtain them.
-5. Finally, summarize your output in a structured way.
+agent_prompt = ChatPromptTemplate.from_template("""
+You are a helpful AI assistant. Use the provided context to answer the question as accurately as possible.
 
 Context:
 {context}
 
-User Question:
+Question:
 {question}
 
-Your Output (follow these steps carefully):
-- Relevant Issue: ...
-- Missing Key Points: ...
-- Follow-up Question (if needed): ...
-- Final Answer: ...
+Instructions:
+- Base your answer strictly on the given context.
+- If the context contains the answer, extract and summarize the most relevant information clearly and concisely.
+- Do not add information that is not present in the context.
+- If the answer cannot be found in the context, respond with: 
+  "I could not find relevant information in the provided documents."
+
+Final Answer:
 """)

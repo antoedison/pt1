@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RAG Admin Dashboard</title>
+  <style>
+    /* ====== Global Styles ====== */
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8e6e9; /* very mild pale maroon */
+      color: #333;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ====== Sidebar ====== */
+    aside {
+      background-color: #fdfaf8; /* mild white */
+      width: 280px;
+      padding: 2rem 1.5rem;
+      border-right: 2px solid #8B2434;
+    }
+
+    aside h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: #8B2434;
+    }
+
+    aside p {
+      margin: 0.5rem 0;
+      font-size: 0.9rem;
+      color: #333;
+    }
+
+    aside ul {
+      list-style: none;
+      padding-left: 0;
+      margin-top: 1rem;
+    }
+
+    aside ul li {
+      margin: 0.5rem 0;
+      font-size: 0.95rem;
+    }
+
+    /* ====== Main Content ====== */
+    main {
+      flex: 1;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      overflow-y: auto;
+      background-color: #fdfaf8; /* mild white */
+    }
+
+    main h2 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      color: #8B2434;
+    }
+
+    .card {
+      background-color: #fdfaf8; /* mild white */
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+      border: 1px solid #8B2434;
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    input[type="file"],
+    input[type="text"],
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-bottom: 1rem;
+    }
+
+    button {
+      background-color: #8B2434;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #A93C4C;
+    }
+
+    .result p.success {
+      color: green;
+      font-weight: 600;
+    }
+
+    .result p.error {
+      color: red;
+      font-weight: 600;
+    }
+
+    footer {
+      margin-top: auto;
+      font-size: 0.8rem;
+      color: #888;
+      text-align: center;
+      padding: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside>
+    <h1>⚙️ RAG Admin Panel</h1>
+    <p>Manage your document indexes and run queries.</p>
+    <p><strong>Features:</strong></p>
+    <ul>
+      <li>📄 Upload Documents</li>
+      <li>📂 Create FAISS Index</li>
+      <li>🔍 Query Documents</li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main>
+    <h2>📚 Document Management</h2>
+
+    <!-- Upload Section -->
+    <section class="card">
+      <h3>📤 Upload Document</h3>
+      <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+        <label for="file">Choose File</label>
+        <input type="file" id="file" name="file" required />
+        <button type="submit">Upload & Create Index</button>
+      </form>
+      <div id="uploadResult" class="result">
+        {% if message %}
+          <p class="success">{{ message }}</p>
+        {% elif error %}
+          <p class="error">{{ error }}</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- Query Section -->
+    <section class="card">
+      <h3>🔎 Query Document</h3>
+      <form id="queryForm" action="/query" method="post">
+        <label for="index_name">Index Path</label>
+        <input type="text" id="index_name" name="index_name" placeholder="Enter index path" value="{{ index_name or '' }}" required />
+
+        <label for="question">Ask a Question</label>
+        <input type="text" id="question" name="question" placeholder="Ask your question" value="{{ question or '' }}" required />
+
+        <button type="submit">Get Answer</button>
+      </form>
+      <div id="queryResult" class="result">
+        {% if answer %}
+          <p><strong>Answer:</strong> {{ answer }}</p>
+        {% elif error %}
+          <p class="error">{{ error }}</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <footer>
+      &copy; 2025 RAG Admin. All rights reserved.
+    </footer>
+  </main>
+</body>
+</html>
